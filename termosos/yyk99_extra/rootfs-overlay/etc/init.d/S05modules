@@ -1,0 +1,33 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+        echo "Loading kernel modules..."
+
+        # Load modules
+        #modprobe spi_bcm2835
+        #modprobe i2c-dev
+        #modprobe usbnet
+        #modprobe asix
+
+        # Load with parameters
+        #modprobe w1-gpio gpiopin=4
+        #modprobe w1-therm
+
+	modprobe r8153_ecm
+
+        echo "Modules loaded"
+        ;;
+
+    stop)
+        echo "Unloading modules..."
+        #modprobe -r w1-therm
+        #modprobe -r w1-gpio
+        #modprobe -r asix
+        #modprobe -r usbnet
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+esac

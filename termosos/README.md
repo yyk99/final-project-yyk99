@@ -5,7 +5,7 @@ The manual setup
 ## Build
 
 	cd buildroot
-	make defconfig BR2_DEFCONFIG=../dot.config
+	make defconfig BR2_DEFCONFIG=../dot.config BR2_EXTERNAL=../yyk99_extra
 	make menuconfig
 	make
 
@@ -54,4 +54,4 @@ Solution 5: Buildroot-Specific Fix
 If this happens during Buildroot build:
 
 	make host-fakeroot-dirclean
-    make host-fakeroot
+	make host-fakeroot

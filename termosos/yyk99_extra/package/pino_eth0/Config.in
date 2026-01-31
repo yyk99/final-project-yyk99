@@ -1,0 +1,4 @@
+config BR2_PACKAGE_PINO_ETH0
+    bool "pino_eth0"
+    help
+      Configure USB eth0 if present
