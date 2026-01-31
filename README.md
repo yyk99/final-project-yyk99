@@ -1,5 +1,11 @@
 # Final Project Proposal
 
+## Manifesto for Agile Software Development
+
+* Individuals and interactions over processes and tools
+* __Working software over comprehensive documentation__
+* Customer collaboration over contract negotiation
+* Responding to change over following a plan
 
 ## Project Overview
 
