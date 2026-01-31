@@ -11,7 +11,7 @@ The manual setup
 
 ## Initial setup
 
-- get buildroot repository
+Get buildroot repository
 
 ```
 commit e687e3815f76c1c5ea9fb52b6558bedfe53ab117 (grafted, HEAD -> 2024.02.x, tag: 2024.02.13, origin/2024.02.x)
