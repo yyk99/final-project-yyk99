@@ -1,0 +1,4 @@
+[submodule "buildroot"]
+	path = termosos/buildroot
+	url = https://gitlab.com/buildroot.org/buildroot/
+	shallow = true
