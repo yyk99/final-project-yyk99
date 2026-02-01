@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL_yyk99_extra_PATH/package/pino_eth0/Config.in"
+source "$BR2_EXTERNAL_yyk99_extra_PATH/package/termosos/Config.in"

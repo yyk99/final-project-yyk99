@@ -1,0 +1,4 @@
+config BR2_PACKAGE_TERMOSOS
+    bool "termosos"
+    help
+      Include termosos stuff (driver and server)
