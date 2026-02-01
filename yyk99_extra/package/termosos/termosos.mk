@@ -8,12 +8,12 @@ TERMOSOS_LICENSE = MIT
 #MYMODULE_MODULE_MAKE_OPTS = KVERSION=$(LINUX_VERSION_PROBED)
 
 define TERMOSOS_BUILD_CMDS
-	echo $(MAKE) $(TARGET_CONFIGURE_OPTS) -C $(@D) all
+	$(MAKE) $(TARGET_CONFIGURE_OPTS) -C $(@D) all
 endef
 
 define TERMOSOS_INSTALL_TARGET_CMDS
-	echo $(INSTALL) -D -m 0755 $(@D)/libfoo.so* $(TARGET_DIR)/usr/lib
-	echo $(INSTALL) -d -m 0755 $(TARGET_DIR)/etc/foo.d
+	$(INSTALL) -D -m 0755 $(@D)/udpserver/udpserver $(TARGET_DIR)/usr/bin
+	$(INSTALL) -D -m 0755 $(@D)/udpserver/udp_echo_client $(TARGET_DIR)/usr/bin
 endef
 
 #$(eval $(kernel-module))
