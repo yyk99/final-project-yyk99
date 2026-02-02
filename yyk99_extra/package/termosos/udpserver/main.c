@@ -88,7 +88,14 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    syslog(LOG_INFO, "UDP Echo Server listening on port %d...\n", PORT);
+    syslog(LOG_INFO, "UDP Echo Server listening on port %d...", PORT);
+    if (daemon_flag) {
+        if (fork()) {
+            return 0;
+        }
+        setsid();
+        syslog(LOG_INFO, "Daemon started");
+    }
 
     // Echo loop
     while (!done) {
@@ -104,7 +111,7 @@ int main(int argc, char **argv)
         }
 
         buffer[recv_len] = '\0';
-        syslog(LOG_INFO, "Received from %s:%d: %s\n",
+        syslog(LOG_INFO, "Received from %s:%d: %s",
                inet_ntoa(client_addr.sin_addr),
                ntohs(client_addr.sin_port),
                buffer);
@@ -119,5 +126,4 @@ int main(int argc, char **argv)
     close(sockfd);
     closelog();
     return 0;
-
 }
