@@ -1,9 +1,9 @@
 #!/bin/sh
 
-set -e # exit on failure
+set -e
 
-module=aesdchar
-device=aesdchar
+module=dht11_driver
+device=dht11
 mode=664
 
 # Group: since distributions do it differently, look for wheel or use staff
