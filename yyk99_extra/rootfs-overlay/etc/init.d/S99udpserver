@@ -5,13 +5,13 @@ PIDFILE="/var/run/$DAEMON.pid"
 
 start() {
     printf "Starting $DAEMON: "
-    start-stop-daemon -S -q -p $PIDFILE -x /usr/sbin/$DAEMON -- -d
+    start-stop-daemon -S -q -x /usr/sbin/$DAEMON -- -d
     [ $? = 0 ] && echo "OK" || echo "FAIL"
 }
 
 stop() {
     printf "Stopping $DAEMON: "
-    start-stop-daemon -K -q -p $PIDFILE
+    start-stop-daemon -K -q -n $DAEMON
     [ $? = 0 ] && echo "OK" || echo "FAIL"
 }
 
