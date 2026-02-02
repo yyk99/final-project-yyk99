@@ -24,6 +24,7 @@ static void on_signal(int)
 {
     syslog(LOG_INFO, "Caught signal, exiting");
     done = 1;
+    exit(EXIT_FAILURE);
 }
 
 static void usage(const char *me)
@@ -38,6 +39,9 @@ int main(int argc, char **argv)
     int daemon_flag = 0;
 
     openlog("udpserver", LOG_PID|LOG_PERROR, LOG_USER);
+
+    signal(SIGINT, on_signal);
+    signal(SIGTERM, on_signal);
 
     while((ch = getopt(argc, argv, "hdp:")) != -1) {
         switch(ch) {
@@ -87,7 +91,7 @@ int main(int argc, char **argv)
     syslog(LOG_INFO, "UDP Echo Server listening on port %d...\n", PORT);
 
     // Echo loop
-    while (1) {
+    while (!done) {
         memset(buffer, 0, BUFFER_SIZE);
 
         // Receive data from client

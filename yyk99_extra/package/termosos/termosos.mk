@@ -12,7 +12,7 @@ define TERMOSOS_BUILD_CMDS
 endef
 
 define TERMOSOS_INSTALL_TARGET_CMDS
-	$(INSTALL) -D -m 0755 $(@D)/udpserver/udpserver $(TARGET_DIR)/usr/bin
+	$(INSTALL) -D -m 0755 $(@D)/udpserver/udpserver $(TARGET_DIR)/usr/sbin
 	$(INSTALL) -D -m 0755 $(@D)/udpserver/udp_echo_client $(TARGET_DIR)/usr/bin
 endef
 
