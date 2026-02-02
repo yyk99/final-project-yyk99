@@ -61,22 +61,17 @@ long dht11_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int err = 0;
 	int retval = 0;
-    ssize_t off;
-    struct aesd_seekto req;
+    struct dht11_seekto req;
     struct dht11_dev *dev = filp->private_data;
-
-    (void)dev;
-    (void)req;
-    (void)off;
 
     PDEBUG("dht11_driver_ioctl: cmd %u, arg %lu", cmd, arg);
 	/*
 	 * extract the type and number bitfields, and don't decode
 	 * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
 	 */
-	if (_IOC_TYPE(cmd) != AESD_IOC_MAGIC)
+	if (_IOC_TYPE(cmd) != DHT11_IOC_MAGIC)
         return -ENOTTY;
-	if (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR)
+	if (_IOC_NR(cmd) > DHT11CHAR_IOC_MAXNR)
         return -ENOTTY;
 
 	/*
@@ -93,67 +88,21 @@ long dht11_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         return -EFAULT;
 
 	switch(cmd) {
-#if 0
-    case AESDCHAR_IOCSEEKTO:
-        if(copy_from_user(&req, (struct aesd_seekto __user *)arg, sizeof(struct aesd_seekto)))
+    case DHT11CHAR_IOCSEEKTO:
+        if(copy_from_user(&req, (struct dht11_seekto __user *)arg, sizeof(struct dht11_seekto)))
             return -EFAULT;
 
         if(mutex_lock_interruptible(&dev->lock))
             return -ERESTARTSYS;
 
-        off = aesd_circular_buffer_offset(dev->lines, req.write_cmd, req.write_cmd_offset);
-        mutex_unlock(&dev->lock);
+        PDEBUG("dht11_driver_ioctl: DHT11CHAR_IOCSEEKTO: {%u %d}", req.cmd, req.cmd_aux);
 
-        PDEBUG("aesd_ioctl: AESDCHAR_IOCSEEKTO: {%u %d} => %ld", req.write_cmd, req.write_cmd_offset, (long int)off);
-
-        if (off == -1)
-            return -EINVAL;
-        filp->f_pos = off;
         break;
-#endif
     default:  /* redundant, as cmd was checked against MAXNR */
 		return -ENOTTY;
 	}
 	return retval;
 }
-
-/*
- * The "extended" operations -- only seek
- */
-#if 0
-loff_t dht11_driver_llseek(struct file *filp, loff_t off, int whence)
-{
-	struct dht11_dev *dev = filp->private_data;
-	loff_t newpos;
-
-    PDEBUG("dht11_driver_llseek: whence %d, offset %lld", whence, off);
-
-	switch(whence) {
-    case 0: /* SEEK_SET */
-		newpos = off;
-		break;
-
-    case 1: /* SEEK_CUR */
-		newpos = filp->f_pos + off;
-		break;
-
-    case 2: /* SEEK_END */
-        if(mutex_lock_interruptible(&dev->lock))
-            return -ERESTARTSYS;
-
-		newpos = aesd_circular_buffer_size(dev->lines) + off;
-        mutex_unlock(&dev->lock);
-		break;
-
-    default: /* can't happen */
-		return -EINVAL;
-	}
-	if (newpos < 0)
-        return -EINVAL;
-	filp->f_pos = newpos;
-	return newpos;
-}
-#endif
 
 ssize_t dht11_driver_read(struct file *filp, char __user *buf, size_t count,
                 loff_t *f_pos)
@@ -168,28 +117,6 @@ ssize_t dht11_driver_read(struct file *filp, char __user *buf, size_t count,
 
     count = 0; /* FIX: DEBUG */
 
-#if 0
-	if (mutex_lock_interruptible(&dev->lock))
-		return -ERESTARTSYS;
-
-    ep = aesd_circular_buffer_find_entry_offset_for_fpos(dev->lines, *f_pos, &offset);
-    if (!ep) {
-        retval = 0;
-        goto out;
-    }
-    if (offset > ep->size) { /* ASSERT */
-        printk(KERN_ERR "%s: offset = %zu is > size = %zu\n", __func__, offset, ep->size);
-        retval = -EFAULT;
-        goto out;
-    }
-	if (count > ep->size - offset)
-		count = ep->size - offset;
-
-	if (copy_to_user(buf, ep->buffptr + offset, count)) {
-		retval = -EFAULT;
-		goto out;
-	}
-#endif
 	*f_pos += count;
 	retval = count;
 
@@ -257,7 +184,6 @@ ssize_t dht11_driver_write(struct file *filp, const char __user *buf, size_t cou
 
 struct file_operations dht11_fops = {
     .owner =    THIS_MODULE,
-    /* .llseek =   aesd_llseek, */
     .read =     dht11_driver_read,
     .write =    dht11_driver_write,
     .unlocked_ioctl = dht11_driver_ioctl,

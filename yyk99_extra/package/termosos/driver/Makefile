@@ -30,9 +30,6 @@ clean:
 		*.mod.c \
 		*.order
 
-aesd_test: aesd_test.c
-	$(CC) -o aesd_test aesd_test.c
-
 TAGS: *.h *.c Makefile
 	./make-etags.sh
 

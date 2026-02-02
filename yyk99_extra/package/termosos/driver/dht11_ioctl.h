@@ -1,14 +1,9 @@
 /*
- * aesd_ioctl.h
- *
- *  Created on: Oct 23, 2019
- *      Author: Dan Walkes
- *
- *  @brief Definitins for the ioctl used on aesd char devices for assignment 9
+ * dht11_ioctl.h
  */
 
-#ifndef AESD_IOCTL_H
-#define AESD_IOCTL_H
+#ifndef DHT11_IOCTL_H
+#define DHT11_IOCTL_H
 
 #ifdef __KERNEL__
 #include <asm-generic/ioctl.h>
@@ -19,28 +14,22 @@
 #endif
 
 /**
- * A structure to be passed by IOCTL from user space to kernel space, describing the type
- * of seek performed on the aesdchar driver
+ * A structure to be passed by IOCTL from user space to kernel space
  */
-struct aesd_seekto {
-    /**
-     * The zero referenced write command to seek into
-     */
-    uint32_t write_cmd;
-    /**
-     * The zero referenced offset within the write
-     */
-    uint32_t write_cmd_offset;
+struct dht11_seekto {
+    uint32_t cmd;
+    uint32_t cmd_aux;
 };
 
-// Pick an arbitrary unused value from https://github.com/torvalds/linux/blob/master/Documentation/userspace-api/ioctl/ioctl-number.rst
-#define AESD_IOC_MAGIC 0x16
+/* Pick an arbitrary unused value from */
+/* https://github.com/torvalds/linux/blob/master/Documentation/userspace-api/ioctl/ioctl-number.rst */
+#define DHT11_IOC_MAGIC 0x16
 
-// Define a write command from the user point of view, use command number 1
-#define AESDCHAR_IOCSEEKTO _IOWR(AESD_IOC_MAGIC, 1, struct aesd_seekto)
+/* Define a write command from the user point of view, use command number 1 */
+#define DHT11CHAR_IOCSEEKTO _IOWR(DHT11_IOC_MAGIC, 1, struct dht11_seekto)
 /**
  * The maximum number of commands supported, used for bounds checking
  */
-#define AESDCHAR_IOC_MAXNR 1
+#define DHT11CHAR_IOC_MAXNR 1
 
-#endif /* AESD_IOCTL_H */
+#endif
