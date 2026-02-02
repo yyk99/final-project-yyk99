@@ -10,12 +10,17 @@
 
 #include "server.h"
 
-int main() {
+int main(int argc, char **argv) {
     int sockfd;
     char buffer[BUFFER_SIZE];
     char message[BUFFER_SIZE];
     struct sockaddr_in server_addr;
     socklen_t server_len = sizeof(server_addr);
+    const char *server_name = "127.0.0.1";
+
+    if (argc == 2) {
+        server_name = argv[1];
+    }
 
     // Create socket
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -27,9 +32,9 @@ int main() {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(server_name);
 
-    printf("UDP Echo Client\n");
+    printf("UDP Echo Client connected to (%s)\n", server_name);
     printf("Type messages to send (Ctrl+C to exit):\n");
 
     while (1) {

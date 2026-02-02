@@ -24,6 +24,7 @@ static void on_signal(int)
 {
     syslog(LOG_INFO, "Caught signal, exiting");
     done = 1;
+    exit(EXIT_FAILURE);
 }
 
 static void usage(const char *me)
@@ -38,6 +39,9 @@ int main(int argc, char **argv)
     int daemon_flag = 0;
 
     openlog("udpserver", LOG_PID|LOG_PERROR, LOG_USER);
+
+    signal(SIGINT, on_signal);
+    signal(SIGTERM, on_signal);
 
     while((ch = getopt(argc, argv, "hdp:")) != -1) {
         switch(ch) {
@@ -84,10 +88,17 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    syslog(LOG_INFO, "UDP Echo Server listening on port %d...\n", PORT);
+    syslog(LOG_INFO, "UDP Echo Server listening on port %d...", PORT);
+    if (daemon_flag) {
+        if (fork()) {
+            return 0;
+        }
+        setsid();
+        syslog(LOG_INFO, "Daemon started");
+    }
 
     // Echo loop
-    while (1) {
+    while (!done) {
         memset(buffer, 0, BUFFER_SIZE);
 
         // Receive data from client
@@ -100,7 +111,7 @@ int main(int argc, char **argv)
         }
 
         buffer[recv_len] = '\0';
-        syslog(LOG_INFO, "Received from %s:%d: %s\n",
+        syslog(LOG_INFO, "Received from %s:%d: %s",
                inet_ntoa(client_addr.sin_addr),
                ntohs(client_addr.sin_port),
                buffer);
@@ -115,5 +126,4 @@ int main(int argc, char **argv)
     close(sockfd);
     closelog();
     return 0;
-
 }
