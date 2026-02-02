@@ -283,7 +283,7 @@ int dht11_driver_init_module(void)
 {
     dev_t dev = 0;
     int result;
-    result = alloc_chrdev_region(&dev, dht11_driver_minor, 1, "dht11");
+    result = alloc_chrdev_region(&dev, dht11_driver_minor, 1, "dht11_driver");
     dht11_driver_major = MAJOR(dev);
     if (result < 0) {
         printk(KERN_WARNING "Can't get major %d\n", dht11_driver_major);
