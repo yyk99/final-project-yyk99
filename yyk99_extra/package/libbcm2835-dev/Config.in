@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LIBBCM2835_DEV
+    bool "libbcm2835-dev"
+    help
+      Include libbcm2835-dev development headers and libs
