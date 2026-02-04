@@ -1,4 +1,5 @@
 /*
+   Final assignment
  */
 
 #include <sys/types.h>
@@ -19,6 +20,7 @@
 #include "server.h"
 
 int done = 0;
+char buffer[BUFFER_SIZE];
 
 static void on_signal(int)
 {
@@ -32,11 +34,18 @@ static void usage(const char *me)
     fprintf(stderr, "Usage: %s [-h] [-d] [-p port-number]\n", me);
 }
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 int main(int argc, char **argv)
 {
     const char *me = argv[0];
     int ch;
     int daemon_flag = 0;
+
+    int sockfd;
+    struct sockaddr_in server_addr, client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    ssize_t recv_len;
 
     openlog("udpserver", LOG_PID|LOG_PERROR, LOG_USER);
 
@@ -62,12 +71,6 @@ int main(int argc, char **argv)
 
     argc -= optind;
     argv += optind;
-
-    int sockfd;
-    char buffer[BUFFER_SIZE];
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t client_len = sizeof(client_addr);
-    ssize_t recv_len;
 
     // Create UDP socket
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -111,12 +114,26 @@ int main(int argc, char **argv)
         }
 
         buffer[recv_len] = '\0';
-        syslog(LOG_INFO, "Received from %s:%d: %s",
+        syslog(LOG_DEBUG, "Received from %s:%d: %s",
                inet_ntoa(client_addr.sin_addr),
                ntohs(client_addr.sin_port),
                buffer);
 
-        // Echo back to client
+        server_reply_t req = { .output = NULL, .output_size = 0 };
+        server_t srv = { .port = PORT };
+        // int server_process_request(server_t *self, const char *cmd, server_reply_t *out);
+        if(server_process_request(&srv, buffer, &req)) {
+            // FAILED
+            strncpy(buffer, "ERR Cannot read DHT11 sensor\n", sizeof(buffer));
+            recv_len = strnlen(buffer, sizeof(buffer));
+        } else {
+            strncpy(buffer, "OK ", sizeof(buffer));
+            int len = strnlen(buffer, sizeof(buffer));
+            int capacity = sizeof(buffer) - len;
+            memcpy(buffer + len, req.output, MIN(req.output_size, capacity));
+            recv_len = MIN(len + req.output_size, sizeof(buffer));
+            free(req.output);
+        }
         if (sendto(sockfd, buffer, recv_len, 0,
                    (struct sockaddr *)&client_addr, client_len) < 0) {
             syslog(LOG_ERR, "sendto failed: %s", strerror(errno));
@@ -125,5 +142,6 @@ int main(int argc, char **argv)
 
     close(sockfd);
     closelog();
+
     return 0;
 }

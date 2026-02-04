@@ -4,7 +4,7 @@
 
 CC ?= $(CROSS_COMPILE)gcc
 CFLAGS ?= -g -Wall -Werror
-ALL = udpserver udp_echo_client
+ALL = udpserver udpclient
 
 all: $(ALL)
 	@echo Done
@@ -12,8 +12,8 @@ all: $(ALL)
 udpserver: server.c server.h main.c Makefile
 	$(CC) -o udpserver server.c main.c
 
-udp_echo_client: udp_echo_client.c server.h Makefile
-	$(CC) -o udp_echo_client udp_echo_client.c
+udpclient: udpclient.c server.h Makefile
+	$(CC) -o udpclient udpclient.c
 
 clean:
 	$(RM) *.o $(ALL)
