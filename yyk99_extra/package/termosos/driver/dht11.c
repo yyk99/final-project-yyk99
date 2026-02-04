@@ -46,7 +46,6 @@ static uint8_t dht11_get_byte(int b, int buf[])
     return result;
 }
 
-
 /*
   return 0 if success
 */
@@ -126,9 +125,10 @@ int dht11_get_data(struct dht11_t *self, uint8_t pin)
     self->byte5 = dht11_get_byte(5, self->buf);
 
     if (self->byte5 ==  ((self->byte1 + self->byte2 + self->byte3 + self->byte4) & 0xFF)) {
-        self->humidity = (int)(((float)self->byte1 + (float) self->byte2 / 10.0) * 100);
+        int neg;
 
-        int neg = self->byte3 & 0x80;
+        self->humidity = (int)(((float)self->byte1 + (float) self->byte2 / 10.0) * 100);
+        neg = self->byte3 & 0x80;
         self->byte3 = self->byte3 & 0x7F;
         self->temperature = (int)(((float)self->byte3  + (float)self->byte4 / 10.0) * 100);
         if (neg > 0)
