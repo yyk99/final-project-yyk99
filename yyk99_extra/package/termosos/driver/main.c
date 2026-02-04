@@ -30,6 +30,7 @@ int dht11_driver_minor =   0;
 
 MODULE_AUTHOR("Yury Y. Kuznetsov (a.k.a yyk99)");
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION("0.5.1");
 
 struct dht11_dev dht11_device;
 static int bit_RPI_BPLUS_GPIO_J8_07     =  4;  /*!< B+, Pin J8-07 */
