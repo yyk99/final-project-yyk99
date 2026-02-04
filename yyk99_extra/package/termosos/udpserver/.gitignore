@@ -1,3 +1,4 @@
 udpserver
+udpclient
 udp_echo_client
 *.o

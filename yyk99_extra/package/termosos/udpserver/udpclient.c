@@ -10,7 +10,8 @@
 
 #include "server.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     int sockfd;
     char buffer[BUFFER_SIZE];
     char message[BUFFER_SIZE];
@@ -51,7 +52,7 @@ int main(int argc, char **argv) {
         recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0,
                  (struct sockaddr *)&server_addr, &server_len);
 
-        printf("Echo: %s\n", buffer);
+        printf("<<<%s\n", buffer);
     }
 
     close(sockfd);
