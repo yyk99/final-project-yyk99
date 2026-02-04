@@ -16,3 +16,5 @@ Here is the [Project Overview](https://github.com/yyk99/final-project-yyk99/wiki
 Clone with shallow sub-modules:
 
 	git clone --shallow-submodules --recursive git@github.com:yyk99/final-project-yyk99.git
+
+See BUILD.md for more details

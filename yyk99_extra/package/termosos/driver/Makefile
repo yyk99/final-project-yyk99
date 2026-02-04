@@ -1,8 +1,39 @@
-#
-#
-#
+# See example Makefile from scull project
+# Comment/uncomment the following line to disable/enable debugging
+DEBUG = y
 
-all:
-	echo TODO: all
+# Add your debugging flag (or not) to CFLAGS
+ifeq ($(DEBUG),y)
+	DEBFLAGS = -O -g -DSCULL_DEBUG # "-O" is needed to expand inlines
+else
+	DEBFLAGS = -O2
+endif
+
+EXTRA_CFLAGS += $(DEBFLAGS)
+
+ifneq ($(KERNELRELEASE),)
+# call from kernel build system
+obj-m	:= dht11_driver.o
+dht11_driver-y := main.o dht11.o
+else
+
+KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+PWD       := $(shell pwd)
+
+modules:
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+endif
+
 clean:
-	echo TODO: clean
+	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions *.o *.mod \
+		*.symvers \
+		*.mod.c \
+		*.order
+
+.PHONY: TAGS
+TAGS:
+	./make-etags.sh
+
+# Local Variables:
+# compile-command: "make clean && make -C /usr/src/linux-headers-$(uname -r) M=`pwd` modules CC=x86_64-linux-gnu-gcc-12"
+# End:

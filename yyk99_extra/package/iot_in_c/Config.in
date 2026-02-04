@@ -1,0 +1,4 @@
+config BR2_PACKAGE_IOT_IN_C
+    bool "iot_in_c"
+    help
+      Collection of IOT related apps (based on the IOT in C book)
