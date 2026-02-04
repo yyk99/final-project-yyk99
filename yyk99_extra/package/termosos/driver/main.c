@@ -1,11 +1,8 @@
 /**
  * @file main.c
- * @brief DHT11 driver functions and data related to the
+ * @brief DHT11 driver functions and data
  *
- * Based on the implementation of the "scull" device driver, found in
- * Linux Device Drivers example code.
- *
- * @author yyk99
+ * @author Yury Y. Kuznetsov (aka yyk99)
  */
 
 #include <linux/module.h>
@@ -25,37 +22,58 @@
 #endif
 
 #include "dht11.h"
+#include "dht11_driver.h"
 #include "dht11_ioctl.h"
 
 int dht11_driver_major =   0; // use dynamic major
 int dht11_driver_minor =   0;
 
-MODULE_AUTHOR("Yury K. (a.k.a yyk99)");
+MODULE_AUTHOR("Yury Y. Kuznetsov (a.k.a yyk99)");
 MODULE_LICENSE("Dual MIT/GPL");
 
 struct dht11_dev dht11_device;
+static int bit_RPI_BPLUS_GPIO_J8_07     =  4;  /*!< B+, Pin J8-07 */
 
 int dht11_driver_open(struct inode *inode, struct file *filp)
 {
-	struct dht11_dev *dev; /* device information */
+	struct dht11_dev *dev;
 
     PDEBUG("open");
 
 	dev = container_of(inode->i_cdev, struct dht11_dev, cdev);
-	filp->private_data = dev; /* for other methods */
+	filp->private_data = dev;
+
+    if(!mutex_trylock(&dev->lock))
+        return -EBUSY;
+
+    if(dht11_get_data(&dev->dht11_self, bit_RPI_BPLUS_GPIO_J8_07)){
+        strncpy(dev->text, "Inconsistent data", sizeof(dev->text));
+        dev->text_size = strnlen(dev->text, sizeof(dev->text));
+    } else {
+        snprintf(dev->text, sizeof(dev->text),
+                 "T: %d.%02dC H: %d.%02d%%\n",
+                 dev->dht11_self.temperature / 100,
+                 dev->dht11_self.temperature % 100,
+                 dev->dht11_self.humidity / 100,
+                 dev->dht11_self.humidity % 100);
+        dev->text_size = strnlen(dev->text, sizeof(dev->text));
+    }
 
     return 0;
 }
 
 int dht11_driver_release(struct inode *inode, struct file *filp)
 {
+	struct dht11_dev *dev;
+
     PDEBUG("release");
+
+	dev = container_of(inode->i_cdev, struct dht11_dev, cdev);
+	filp->private_data = dev;
+    mutex_unlock(&dev->lock);
+
     return 0;
 }
-
-/*
- * The ioctl() implementation
- */
 
 long dht11_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -109,75 +127,20 @@ ssize_t dht11_driver_read(struct file *filp, char __user *buf, size_t count,
 {
     ssize_t retval = 0;
     struct dht11_dev *dev = filp->private_data;
-    size_t offset;
+    loff_t offset = *f_pos;
 
-    (void)offset;
+    if (count > dev->text_size - offset)
+        count = dev->text_size - offset;
 
-    PDEBUG("read %zu bytes with offset %lld", count, *f_pos);
-
-    count = 0; /* FIX: DEBUG */
-
-	*f_pos += count;
-	retval = count;
-
- /* out: */
-    mutex_unlock(&dev->lock);
-    return retval;
-}
-
-ssize_t dht11_driver_write(struct file *filp, const char __user *buf, size_t count,
-                loff_t *f_pos)
-{
-    struct dht11_dev *dev = filp->private_data;
-	ssize_t retval = -ENOMEM;
-
-    PDEBUG("write %zu bytes with offset %lld", count, *f_pos);
-
-	if (mutex_lock_interruptible(&dev->lock))
-		return -ERESTARTSYS;
-
-#if 0
-    tmp_size = dev->line_buffer_size + count;
-    tmp_buf = krealloc(dev->line_buffer, tmp_size, GFP_KERNEL);
-    if(!tmp_buf) {
-        retval = -ENOMEM;
-        goto out;
-    }
-
-    dev->line_buffer = tmp_buf;
-
-    if (copy_from_user(dev->line_buffer + dev->line_buffer_size, buf, count)) {
+    if (copy_to_user(buf, dev->text + offset, count)) {
         retval = -EFAULT;
         goto out;
     }
 
-    dev->line_buffer_size = tmp_size;
+	*f_pos += count;
+	retval = count;
 
-    retval = count;
-    *f_pos += count;
-
-    pos = memchr(tmp_buf, '\n', tmp_size);
-    while(pos) {
-        lines_insert(dev->lines, tmp_buf, pos - tmp_buf + 1);
-        tmp_size -= pos - tmp_buf + 1;
-        tmp_buf = pos + 1;
-        pos = memchr(tmp_buf, '\n', tmp_size);
-    }
-    PDEBUG("after while(pos) tmp_size = %zu", tmp_size);
-    if (tmp_size) {
-        memmove(dev->line_buffer, tmp_buf, tmp_size);
-        dev->line_buffer_size = tmp_size;
-    } else {
-        /* TODO: use ksize() */
-        kfree(dev->line_buffer);
-        dev->line_buffer = NULL;
-        dev->line_buffer_size = 0;
-    }
-#endif
-
-    retval = -EFAULT; /* FIX: */
- /* out: */
-    PDEBUG("retval = %d", (int)retval);
+ out:
     mutex_unlock(&dev->lock);
     return retval;
 }
@@ -185,7 +148,6 @@ ssize_t dht11_driver_write(struct file *filp, const char __user *buf, size_t cou
 struct file_operations dht11_fops = {
     .owner =    THIS_MODULE,
     .read =     dht11_driver_read,
-    .write =    dht11_driver_write,
     .unlocked_ioctl = dht11_driver_ioctl,
     .open =     dht11_driver_open,
     .release =  dht11_driver_release,

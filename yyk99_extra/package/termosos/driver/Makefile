@@ -30,7 +30,8 @@ clean:
 		*.mod.c \
 		*.order
 
-TAGS: *.h *.c Makefile
+.PHONY: TAGS
+TAGS:
 	./make-etags.sh
 
 # Local Variables:

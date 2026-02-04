@@ -1,37 +1,28 @@
-/*
- * dht11.h
- *
- */
+#ifndef TERMOSOS_DHT11_H
+#define TERMOSOS_DHT11_H
 
-#ifndef DHT11_CHAR_DRIVER_H
-#define DHT11_CHAR_DRIVER_H
+/* bcm2835.h
 
-#define DHT11_DEBUG 1
+   C and C++ support for Broadcom BCM 2835 as used in Raspberry Pi
 
-#undef PDEBUG
-#ifdef DHT11_DEBUG
-#  ifdef __KERNEL__
-#    define PDEBUG(fmt, args...) printk( KERN_DEBUG "dht11_driver: " fmt, ## args)
-#  else
-#    define PDEBUG(fmt, args...) fprintf(stderr, fmt, ## args)
-#  endif
-#else
-#  define PDEBUG(fmt, args...)
-#endif
+   Author: Mike McCauley
+   Copyright (C) 2011-2013 Mike McCauley
+   $Id: bcm2835.h,v 1.26 2020/01/11 05:07:13 mikem Exp mikem $
+*/
 
-struct dht11_dev
-{
-	struct mutex lock;     /* mutual exclusion semaphore     */
-    struct cdev cdev;     /* Char device structure      */
+struct dht11_t {
+    int humidity; /* hum * 100 */
+    int temperature; /* tem in C * 100 */
+    int buf[41];
+    int tbuf[41];
+
+    int byte1;
+    int byte2;
+    int byte3;
+    int byte4;
+    int byte5;
 };
 
-/* fix [-Wmissing-prototypes] */
-int dht11_driver_open(struct inode *inode, struct file *filp);
-int dht11_driver_release(struct inode *inode, struct file *filp);
-ssize_t dht11_driver_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos);
-ssize_t dht11_driver_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
-long dht11_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
-int dht11_driver_init_module(void);
-void dht11_driver_cleanup_module(void);
+extern int dht11_get_data(struct dht11_t *self, uint8_t pin);
 
-#endif
+#endif /* TERMOSOS_DHT11_H */
