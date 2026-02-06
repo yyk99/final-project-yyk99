@@ -25,15 +25,20 @@
 #include "dht11_driver.h"
 #include "dht11_ioctl.h"
 
+#include "bcm2835.h"
+
 int dht11_driver_major =   0; // use dynamic major
 int dht11_driver_minor =   0;
 
 MODULE_AUTHOR("Yury Y. Kuznetsov (a.k.a yyk99)");
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_VERSION("0.5.1");
+MODULE_VERSION("1.0.0");
 
 struct dht11_dev dht11_device;
-static int bit_RPI_BPLUS_GPIO_J8_07     =  4;  /*!< B+, Pin J8-07 */
+static int gpio_pin = 4;
+module_param(gpio_pin, int, S_IRUGO);
+MODULE_PARM_DESC(gpio_pin, "GPIO pin number for DHT11 sensor");
+
 
 int dht11_driver_open(struct inode *inode, struct file *filp)
 {
@@ -47,14 +52,18 @@ int dht11_driver_open(struct inode *inode, struct file *filp)
     if(!mutex_trylock(&dev->lock))
         return -EBUSY;
 
-    if(dht11_get_data(&dev->dht11_self, bit_RPI_BPLUS_GPIO_J8_07)){
+    bcm2835_gpio_fsel(gpio_pin, BCM2835_GPIO_FSEL_INPT);
+    bcm2835_delayMicroseconds(1000);
+
+    if(dht11_get_data(&dev->dht11_self, gpio_pin)){
         strncpy(dev->text, "Inconsistent data", sizeof(dev->text));
         dev->text_size = strnlen(dev->text, sizeof(dev->text));
     } else {
+        int temp_int = dev->dht11_self.temperature / 100;
+        int temp_frac = abs(dev->dht11_self.temperature % 100);
         snprintf(dev->text, sizeof(dev->text),
                  "T: %d.%02dC H: %d.%02d%%\n",
-                 dev->dht11_self.temperature / 100,
-                 dev->dht11_self.temperature % 100,
+                 temp_int, temp_frac,
                  dev->dht11_self.humidity / 100,
                  dev->dht11_self.humidity % 100);
         dev->text_size = strnlen(dev->text, sizeof(dev->text));
@@ -76,59 +85,15 @@ int dht11_driver_release(struct inode *inode, struct file *filp)
     return 0;
 }
 
-long dht11_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
-{
-	int err = 0;
-	int retval = 0;
-    struct dht11_seekto req;
-    struct dht11_dev *dev = filp->private_data;
-
-    PDEBUG("dht11_driver_ioctl: cmd %u, arg %lu", cmd, arg);
-	/*
-	 * extract the type and number bitfields, and don't decode
-	 * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
-	 */
-	if (_IOC_TYPE(cmd) != DHT11_IOC_MAGIC)
-        return -ENOTTY;
-	if (_IOC_NR(cmd) > DHT11CHAR_IOC_MAXNR)
-        return -ENOTTY;
-
-	/*
-	 * the direction is a bitmask, and VERIFY_WRITE catches R/W
-	 * transfers. `Type' is user-oriented, while
-	 * access_ok is kernel-oriented, so the concept of "read" and
-	 * "write" is reversed
-	 */
-	if (_IOC_DIR(cmd) & _IOC_READ)
-		err = !access_ok_wrapper(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
-	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-		err =  !access_ok_wrapper(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
-	if (err)
-        return -EFAULT;
-
-	switch(cmd) {
-    case DHT11CHAR_IOCSEEKTO:
-        if(copy_from_user(&req, (struct dht11_seekto __user *)arg, sizeof(struct dht11_seekto)))
-            return -EFAULT;
-
-        if(mutex_lock_interruptible(&dev->lock))
-            return -ERESTARTSYS;
-
-        PDEBUG("dht11_driver_ioctl: DHT11CHAR_IOCSEEKTO: {%u %d}", req.cmd, req.cmd_aux);
-
-        break;
-    default:  /* redundant, as cmd was checked against MAXNR */
-		return -ENOTTY;
-	}
-	return retval;
-}
-
 ssize_t dht11_driver_read(struct file *filp, char __user *buf, size_t count,
                 loff_t *f_pos)
 {
     ssize_t retval = 0;
     struct dht11_dev *dev = filp->private_data;
     loff_t offset = *f_pos;
+
+    if (offset >= dev->text_size)
+      return 0;  // EOF
 
     if (count > dev->text_size - offset)
         count = dev->text_size - offset;
@@ -142,14 +107,12 @@ ssize_t dht11_driver_read(struct file *filp, char __user *buf, size_t count,
 	retval = count;
 
  out:
-    mutex_unlock(&dev->lock);
     return retval;
 }
 
 struct file_operations dht11_fops = {
     .owner =    THIS_MODULE,
     .read =     dht11_driver_read,
-    .unlocked_ioctl = dht11_driver_ioctl,
     .open =     dht11_driver_open,
     .release =  dht11_driver_release,
 };
@@ -180,8 +143,16 @@ int dht11_driver_init_module(void)
     }
 
     memset(&dht11_device, 0, sizeof(struct dht11_dev));
+    mutex_init(&dht11_device.lock);
     result = dht11_driver_setup_cdev(&dht11_device);
-    if( result ) {
+    if (result) {
+        goto fail;
+    }
+
+    result = bcm2835_init();
+    if (result) {
+        printk(KERN_ERR "Failed to initialize BCM2835\n");
+        cdev_del(&dht11_device.cdev);
         goto fail;
     }
     return result;
@@ -195,8 +166,16 @@ void dht11_driver_cleanup_module(void)
 {
     dev_t devno = MKDEV(dht11_driver_major, dht11_driver_minor);
 
+    // Attempt to acquire lock to ensure no active operations
+    mutex_lock(&dht11_device.lock);
+
+    bcm2835_close();
+
     cdev_del(&dht11_device.cdev);
     unregister_chrdev_region(devno, 1);
+
+    mutex_unlock(&dht11_device.lock);
+    mutex_destroy(&dht11_device.lock);
 }
 
 module_init(dht11_driver_init_module);

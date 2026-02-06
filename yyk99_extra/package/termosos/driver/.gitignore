@@ -1,4 +1,6 @@
+TAGS
 *.o
+.*.o.d
 *.cmd
 *.ko
 *.mod

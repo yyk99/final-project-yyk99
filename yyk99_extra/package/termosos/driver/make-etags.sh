@@ -8,7 +8,7 @@ echo "Generating TAGS file..."
 rm -f TAGS
 
 # Find all C/C++ source files and generate tags
-find . /usr/src/linux-headers-6.8.0-90-generic -type f \
+find . /usr/src/linux-headers-`uname -r` -type f \
      \( -name "*.[ch]" -o -name "*.cpp" -o -name "*.hpp" \) \
      -not -path "./.git/*" \
      -not -path "*/build/*" \

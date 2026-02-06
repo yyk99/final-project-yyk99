@@ -2,7 +2,7 @@
 
 module=dht11_driver
 device=dht11
-mode="666"
+mode="664"
 
 cd `dirname $0`
 set -e

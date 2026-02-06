@@ -14,7 +14,7 @@ EXTRA_CFLAGS += $(DEBFLAGS)
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 obj-m	:= dht11_driver.o
-dht11_driver-y := main.o dht11.o
+dht11_driver-y := main.o dht11.o bcm2835.o
 else
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
@@ -31,9 +31,9 @@ clean:
 		*.order
 
 .PHONY: TAGS
-TAGS:
+TAGS: make-etags.sh
 	./make-etags.sh
 
 # Local Variables:
-# compile-command: "make clean && make -C /usr/src/linux-headers-$(uname -r) M=`pwd` modules CC=x86_64-linux-gnu-gcc-12"
+# compile-command: "make -k"
 # End:
