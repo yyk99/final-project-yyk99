@@ -66,12 +66,6 @@ volatile uint32_t *bcm2835_spi1        = (uint32_t *)MAP_FAILED;
 /* BEB*/
 volatile uint32_t *bcm2835_smi         = (uint32_t *)MAP_FAILED;
 
-/* This variable allows us to test on hardware other than RPi.
-// It prevents access to the kernel memory, and does not do any peripheral access
-// Instead it prints out what it _would_ do if debug were 0
- */
-static uint8_t debug = 0;
-
 /* RPI 4 has different pullup registers - we need to know if we have that type */
 
 static uint8_t pud_type_rpi4 = 0;
@@ -185,11 +179,6 @@ uint32_t* bcm2835_regbase(uint8_t regbase)
     return (uint32_t *)MAP_FAILED;
 }
 
-void  bcm2835_set_debug(uint8_t d)
-{
-    debug = d;
-}
-
 unsigned int bcm2835_version(void)
 {
     return BCM2835_VERSION;
@@ -201,18 +190,11 @@ unsigned int bcm2835_version(void)
 uint32_t bcm2835_peri_read(volatile uint32_t* paddr)
 {
     uint32_t ret;
-    if (debug)
-    {
-        printk(KERN_DEBUG "bcm2835_peri_read  paddr %p\n", (void *) paddr);
-        return 0;
-    }
-    else
-    {
-       __sync_synchronize();
-       ret = *paddr;
-       __sync_synchronize();
-       return ret;
-    }
+
+    __sync_synchronize();
+    ret = *paddr;
+    __sync_synchronize();
+    return ret;
 }
 
 /* read from peripheral without the read barrier
@@ -223,15 +205,7 @@ uint32_t bcm2835_peri_read(volatile uint32_t* paddr)
  */
 uint32_t bcm2835_peri_read_nb(volatile uint32_t* paddr)
 {
-    if (debug)
-    {
-        printk("bcm2835_peri_read_nb  paddr %p\n", paddr);
-        return 0;
-    }
-    else
-    {
-        return *paddr;
-    }
+    return *paddr;
 }
 
 /* Write with memory barriers to peripheral
@@ -239,30 +213,15 @@ uint32_t bcm2835_peri_read_nb(volatile uint32_t* paddr)
 
 void bcm2835_peri_write(volatile uint32_t* paddr, uint32_t value)
 {
-    if (debug)
-    {
-        printk("bcm2835_peri_write paddr %p, value %08X\n", paddr, value);
-    }
-    else
-    {
-        __sync_synchronize();
-        *paddr = value;
-        __sync_synchronize();
-    }
+    __sync_synchronize();
+    *paddr = value;
+    __sync_synchronize();
 }
 
 /* write to peripheral without the write barrier */
 void bcm2835_peri_write_nb(volatile uint32_t* paddr, uint32_t value)
 {
-    if (debug)
-    {
-        printk("bcm2835_peri_write_nb paddr %p, value %08X\n",
-               paddr, value);
-    }
-    else
-    {
-        *paddr = value;
-    }
+    *paddr = value;
 }
 
 /* Set/clear only the bits in value covered by the mask
@@ -552,49 +511,7 @@ void bcm2835_delay(unsigned int millis)
 /* microseconds */
 void bcm2835_delayMicroseconds(uint64_t micros)
 {
-#ifdef __KERNEL__
-    if (debug)
-    {
-        /* Cant access sytem timers in debug mode */
-        printk(KERN_DEBUG "bcm2835_delayMicroseconds %lld\n", (long long int) micros);
-        return;
-    }
-
     udelay(micros);
-#else
-    struct timespec t1;
-    uint64_t        start;
-
-    if (debug)
-    {
-        /* Cant access sytem timers in debug mode */
-        printf("bcm2835_delayMicroseconds %lld\n", (long long int) micros);
-        return;
-    }
-
-    /* Calling nanosleep() takes at least 100-200 us, so use it for
-    // long waits and use a busy wait on the System Timer for the rest.
-    */
-    start =  bcm2835_st_read();
-
-    /* Not allowed to access timer registers (result is not as precise)*/
-    if (start == 0)
-    {
-        t1.tv_sec = 0;
-        t1.tv_nsec = 1000 * (long)(micros);
-        nanosleep(&t1, NULL);
-        return;
-    }
-
-    if (micros > 450)
-    {
-        t1.tv_sec = 0;
-        t1.tv_nsec = 1000 * (long)(micros - 200);
-        nanosleep(&t1, NULL);
-    }
-
-    bcm2835_st_delay(start, micros);
-#endif
 }
 
 /*
@@ -2012,7 +1929,7 @@ int bcm2835_init(void)
     if (bcm2835_peripherals == MAP_FAILED)
         return -EFAULT;
 
-    printk(KERN_DEBUG "bcm2835_init: ioremap(0x%lx, 0x%lx) = 0x%p\n",
+    printk_ratelimited(KERN_DEBUG "bcm2835_init: ioremap(0x%lx, 0x%lx) = 0x%p\n",
            bcm2835_peripherals_base, (long unsigned)bcm2835_peripherals_size, bcm2835_peripherals);
 
     /* Now compute the base addresses of various peripherals,
@@ -2039,7 +1956,7 @@ int bcm2835_init(void)
 /* returns 0 if success */
 int bcm2835_close(void)
 {
-    printk(KERN_DEBUG "bcm2835_close: bcm2835_peripherals = 0x%p\n",
+    printk_ratelimited(KERN_DEBUG "bcm2835_close: bcm2835_peripherals = 0x%p\n",
            bcm2835_peripherals);
     if (bcm2835_peripherals != MAP_FAILED)
         iounmap(bcm2835_peripherals);
