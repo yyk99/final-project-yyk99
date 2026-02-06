@@ -470,10 +470,11 @@ void bcm2835_gpio_pudclk(uint8_t pin, uint8_t on)
 /* Read GPIO pad behaviour for groups of GPIOs */
 uint32_t bcm2835_gpio_pad(uint8_t group)
 {
+    volatile uint32_t* paddr;
     if (bcm2835_pads == MAP_FAILED)
         return 0;
 
-    volatile uint32_t* paddr = bcm2835_pads + BCM2835_PADS_GPIO_0_27/4 + group;
+    paddr = bcm2835_pads + BCM2835_PADS_GPIO_0_27/4 + group;
     return bcm2835_peri_read(paddr);
 }
 
@@ -483,10 +484,11 @@ uint32_t bcm2835_gpio_pad(uint8_t group)
 */
 void bcm2835_gpio_set_pad(uint8_t group, uint32_t control)
 {
+    volatile uint32_t* paddr;
     if (bcm2835_pads == MAP_FAILED)
         return;
 
-    volatile uint32_t* paddr = bcm2835_pads + BCM2835_PADS_GPIO_0_27/4 + group;
+    paddr = bcm2835_pads + BCM2835_PADS_GPIO_0_27/4 + group;
     bcm2835_peri_write(paddr, control | BCM2835_PAD_PASSWRD);
 }
 
@@ -497,15 +499,7 @@ mdelay(milliseconds);  // Millisecond delay (busy-wait)
 */
 void bcm2835_delay(unsigned int millis)
 {
-#ifdef __KERNEL__
     mdelay(millis);
-#else
-    struct timespec sleeper;
-
-    sleeper.tv_sec  = (time_t)(millis / 1000);
-    sleeper.tv_nsec = (long)(millis % 1000) * 1000000;
-    nanosleep(&sleeper, NULL);
-#endif
 }
 
 /* microseconds */
@@ -571,6 +565,7 @@ void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud)
         int shiftbits = (pin & 0xf) << 1;
         uint32_t bits;
         uint32_t pull;
+        volatile uint32_t* paddr;
 
         switch (pud)
         {
@@ -580,7 +575,7 @@ void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud)
            default: return;
         }
 
-        volatile uint32_t* paddr = bcm2835_gpio + BCM2835_GPPUPPDN0/4 + (pin >> 4);
+        paddr = bcm2835_gpio + BCM2835_GPPUPPDN0/4 + (pin >> 4);
 
         bits = bcm2835_peri_read_nb( paddr );
         bits &= ~(3 << shiftbits);
@@ -637,7 +632,7 @@ int bcm2835_spi_begin(void)
     volatile uint32_t* paddr;
 
     if (bcm2835_spi0 == MAP_FAILED)
-      return 0; /* bcm2835_init() failed, or not root */
+        return 0; /* bcm2835_init() failed, or not root */
 
     /* Set the SPI0 pins to the Alt 0 function to enable SPI0 access on them */
     bcm2835_gpio_fsel(RPI_GPIO_P1_26, BCM2835_GPIO_FSEL_ALT0); /* CE1 */
@@ -1129,7 +1124,7 @@ uint8_t bcm2835_aux_spi_transfer(uint8_t value)
     volatile uint32_t* io = bcm2835_spi1 + BCM2835_AUX_SPI_IO/4;
 
     uint32_t data;
-
+    uint32_t _cntl1;
     uint32_t _cntl0 = (spi1_speed << BCM2835_AUX_SPI_CNTL0_SPEED_SHIFT);
     _cntl0 |= BCM2835_AUX_SPI_CNTL0_CS2_N;
     _cntl0 |= BCM2835_AUX_SPI_CNTL0_ENABLE;
@@ -1137,7 +1132,7 @@ uint8_t bcm2835_aux_spi_transfer(uint8_t value)
     _cntl0 |= BCM2835_AUX_SPI_CNTL0_CPHA_IN;
     _cntl0 |= 8; // Shift length.
 
-    uint32_t _cntl1 = BCM2835_AUX_SPI_CNTL1_MSBF_IN;
+    _cntl1 = BCM2835_AUX_SPI_CNTL1_MSBF_IN;
 
     bcm2835_peri_write(cntl1, _cntl1);
     bcm2835_peri_write(cntl0, _cntl0);
@@ -1158,18 +1153,19 @@ uint8_t bcm2835_aux_spi_transfer(uint8_t value)
 int bcm2835_i2c_begin(void)
 {
     uint16_t cdiv;
+    volatile uint32_t* paddr;
 
     if (   bcm2835_bsc0 == MAP_FAILED
            || bcm2835_bsc1 == MAP_FAILED)
       return 0; /* bcm2835_init() failed, or not root */
 
 #ifdef I2C_V1
-    volatile uint32_t* paddr = bcm2835_bsc0 + BCM2835_BSC_DIV/4;
+    paddr = bcm2835_bsc0 + BCM2835_BSC_DIV/4;
     /* Set the I2C/BSC0 pins to the Alt 0 function to enable I2C access on them */
     bcm2835_gpio_fsel(RPI_GPIO_P1_03, BCM2835_GPIO_FSEL_ALT0); /* SDA */
     bcm2835_gpio_fsel(RPI_GPIO_P1_05, BCM2835_GPIO_FSEL_ALT0); /* SCL */
 #else
-    volatile uint32_t* paddr = bcm2835_bsc1 + BCM2835_BSC_DIV/4;
+    paddr = bcm2835_bsc1 + BCM2835_BSC_DIV/4;
     /* Set the I2C/BSC1 pins to the Alt 0 function to enable I2C access on them */
     bcm2835_gpio_fsel(RPI_V2_GPIO_P1_03, BCM2835_GPIO_FSEL_ALT0); /* SDA */
     bcm2835_gpio_fsel(RPI_V2_GPIO_P1_05, BCM2835_GPIO_FSEL_ALT0); /* SCL */
@@ -1286,10 +1282,10 @@ uint8_t bcm2835_i2c_write(const char * buf, uint32_t len)
             remaining--;
             /* Make sure we don't loop forever! */
             if (--Failsafe == 0)
-                {
-                    Timeout = 1;
-                    break;
-                }
+            {
+                Timeout = 1;
+                break;
+            }
         }
         /* Make sure we don't loop forever! */
         if (--Failsafe == 0)
@@ -1855,63 +1851,64 @@ void bcm2835_pwm_set_clock(uint32_t divisor)
 
 void bcm2835_pwm_set_mode(uint8_t channel, uint8_t markspace, uint8_t enabled)
 {
-  if (   bcm2835_clk == MAP_FAILED
-       || bcm2835_pwm == MAP_FAILED)
+    uint32_t control;
+    if (bcm2835_clk == MAP_FAILED
+        || bcm2835_pwm == MAP_FAILED)
     return; /* bcm2835_init() failed or not root */
 
-  uint32_t control = bcm2835_peri_read(bcm2835_pwm + BCM2835_PWM_CONTROL);
+    control = bcm2835_peri_read(bcm2835_pwm + BCM2835_PWM_CONTROL);
 
-  if (channel == 0)
+    if (channel == 0)
     {
-      if (markspace)
-          control |= BCM2835_PWM0_MS_MODE;
-      else
-          control &= ~BCM2835_PWM0_MS_MODE;
-      if (enabled)
-          control |= BCM2835_PWM0_ENABLE;
-      else
-          control &= ~BCM2835_PWM0_ENABLE;
+        if (markspace)
+            control |= BCM2835_PWM0_MS_MODE;
+        else
+            control &= ~BCM2835_PWM0_MS_MODE;
+        if (enabled)
+            control |= BCM2835_PWM0_ENABLE;
+        else
+            control &= ~BCM2835_PWM0_ENABLE;
     }
-  else if (channel == 1)
+    else if (channel == 1)
     {
-      if (markspace)
-          control |= BCM2835_PWM1_MS_MODE;
-      else
-          control &= ~BCM2835_PWM1_MS_MODE;
-      if (enabled)
-          control |= BCM2835_PWM1_ENABLE;
-      else
-          control &= ~BCM2835_PWM1_ENABLE;
+        if (markspace)
+            control |= BCM2835_PWM1_MS_MODE;
+        else
+            control &= ~BCM2835_PWM1_MS_MODE;
+        if (enabled)
+            control |= BCM2835_PWM1_ENABLE;
+        else
+            control &= ~BCM2835_PWM1_ENABLE;
     }
 
-  /* If you use the barrier here, wierd things happen, and the commands dont work */
-  bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM_CONTROL, control);
-  /*  bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM_CONTROL, BCM2835_PWM0_ENABLE | BCM2835_PWM1_ENABLE | BCM2835_PWM0_MS_MODE | BCM2835_PWM1_MS_MODE); */
+    /* If you use the barrier here, wierd things happen, and the commands dont work */
+    bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM_CONTROL, control);
+    /*  bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM_CONTROL, BCM2835_PWM0_ENABLE | BCM2835_PWM1_ENABLE | BCM2835_PWM0_MS_MODE | BCM2835_PWM1_MS_MODE); */
 
 }
 
 void bcm2835_pwm_set_range(uint8_t channel, uint32_t range)
 {
-  if (   bcm2835_clk == MAP_FAILED
-       || bcm2835_pwm == MAP_FAILED)
-    return; /* bcm2835_init() failed or not root */
+    if (bcm2835_clk == MAP_FAILED
+        || bcm2835_pwm == MAP_FAILED)
+        return; /* bcm2835_init() failed or not root */
 
-  if (channel == 0)
-      bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM0_RANGE, range);
-  else if (channel == 1)
-      bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM1_RANGE, range);
+    if (channel == 0)
+        bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM0_RANGE, range);
+    else if (channel == 1)
+        bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM1_RANGE, range);
 }
 
 void bcm2835_pwm_set_data(uint8_t channel, uint32_t data)
 {
-  if (   bcm2835_clk == MAP_FAILED
-       || bcm2835_pwm == MAP_FAILED)
-    return; /* bcm2835_init() failed or not root */
+    if (bcm2835_clk == MAP_FAILED
+        || bcm2835_pwm == MAP_FAILED)
+        return; /* bcm2835_init() failed or not root */
 
-  if (channel == 0)
-      bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM0_DATA, data);
-  else if (channel == 1)
-      bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM1_DATA, data);
+    if (channel == 0)
+        bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM0_DATA, data);
+    else if (channel == 1)
+        bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM1_DATA, data);
 }
 
 /* Initialise this library. */

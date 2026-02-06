@@ -91,10 +91,10 @@ int dht11_get_data(struct dht11_t *self, uint8_t pin)
     if (self->byte5 == ((self->byte1 + self->byte2 + self->byte3 + self->byte4) & 0xFF)) {
         int neg;
 
-        self->humidity = (int)(self->byte1 * 100 + self->byte2);
+        self->humidity = (int)(self->byte1 * 100 + self->byte2 * 10);
         neg = self->byte3 & 0x80;
         self->byte3 = self->byte3 & 0x7F;
-        self->temperature = (int)(self->byte3 * 100 + self->byte4);
+        self->temperature = (int)(self->byte3 * 100 + self->byte4 * 10);
         if (neg > 0)
             self->temperature = - self->temperature;
         return 0;
