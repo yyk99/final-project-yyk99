@@ -25,8 +25,6 @@
 
 #define MAP_FAILED	((void *) 0)
 
-#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
-
 #define BCK2835_LIBRARY_BUILD
 #include "bcm2835.h"
 
@@ -1998,42 +1996,6 @@ void bcm2835_pwm_set_data(uint8_t channel, uint32_t data)
   else if (channel == 1)
       bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM1_DATA, data);
 }
-
-/* Allocate page-aligned memory. */
-/* static void *malloc_aligned(size_t size) */
-/* { */
-/*     void *mem; */
-/* #ifdef __KERNEL__ */
-/* #else */
-/*     errno = posix_memalign(&mem, BCM2835_PAGE_SIZE, size); */
-/*     return (errno ? NULL : mem); */
-/* #endif */
-/* } */
-
-/* map 'size' bytes starting at 'off' in file 'fd' to memory.
-// Return mapped address on success, MAP_FAILED otherwise.
-// On error print message.
-*/
-/* static void *mapmem(const char *msg, size_t size, int fd, off_t off) */
-/* { */
-/* #ifdef __KERNEL__ */
-/* #else */
-/*     void *map = mmap(NULL, size, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, off); */
-/*     if (map == MAP_FAILED) */
-/*         printk(KERN_ERR "bcm2835_init: %s mmap failed", msg); */
-/*     return map; */
-/* #endif */
-/* } */
-
-/* static void unmapmem(void **pmem, size_t size) */
-/* { */
-/* #ifdef __KERNEL__ */
-/* #else */
-/*     if (*pmem == MAP_FAILED) return; */
-/*     munmap(*pmem, size); */
-/*     *pmem = MAP_FAILED; */
-/* #endif */
-/* } */
 
 /* Initialise this library. */
 /* return 0 if success, otherwise negative value */
