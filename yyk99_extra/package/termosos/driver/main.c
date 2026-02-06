@@ -25,6 +25,8 @@
 #include "dht11_driver.h"
 #include "dht11_ioctl.h"
 
+#include "bcm2835.h"
+
 int dht11_driver_major =   0; // use dynamic major
 int dht11_driver_minor =   0;
 
@@ -46,6 +48,9 @@ int dht11_driver_open(struct inode *inode, struct file *filp)
 
     if(!mutex_trylock(&dev->lock))
         return -EBUSY;
+
+    bcm2835_gpio_fsel(RPI_BPLUS_GPIO_J8_07, BCM2835_GPIO_FSEL_INPT);
+    bcm2835_delayMicroseconds(1000);
 
     if(dht11_get_data(&dev->dht11_self, bit_RPI_BPLUS_GPIO_J8_07)){
         strncpy(dev->text, "Inconsistent data", sizeof(dev->text));
@@ -78,8 +83,8 @@ int dht11_driver_release(struct inode *inode, struct file *filp)
 
 long dht11_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	int err = 0;
-	int retval = 0;
+    int err = 0;
+    int retval = 0;
     struct dht11_seekto req;
     struct dht11_dev *dev = filp->private_data;
 
@@ -184,6 +189,11 @@ int dht11_driver_init_module(void)
     if( result ) {
         goto fail;
     }
+
+    result = bcm2835_init();
+    if (result)
+	goto fail;
+
     return result;
 
  fail:
@@ -194,6 +204,8 @@ int dht11_driver_init_module(void)
 void dht11_driver_cleanup_module(void)
 {
     dev_t devno = MKDEV(dht11_driver_major, dht11_driver_minor);
+
+    bcm2835_close();
 
     cdev_del(&dht11_device.cdev);
     unregister_chrdev_region(devno, 1);
