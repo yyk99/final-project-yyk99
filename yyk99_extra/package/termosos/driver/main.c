@@ -32,7 +32,7 @@ int dht11_driver_minor =   0;
 
 MODULE_AUTHOR("Yury Y. Kuznetsov (a.k.a yyk99)");
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 
 struct dht11_dev dht11_device;
 static int gpio_pin = 4;
@@ -56,7 +56,7 @@ int dht11_driver_open(struct inode *inode, struct file *filp)
     bcm2835_delayMicroseconds(1000);
 
     if(dht11_get_data(&dev->dht11_self, gpio_pin)){
-        strncpy(dev->text, "Inconsistent data", sizeof(dev->text));
+        strncpy(dev->text, "Inconsistent data\n", sizeof(dev->text));
         dev->text_size = strnlen(dev->text, sizeof(dev->text));
     } else {
         int temp_int = dev->dht11_self.temperature / 100;
