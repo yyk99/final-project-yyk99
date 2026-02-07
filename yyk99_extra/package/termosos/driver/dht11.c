@@ -73,11 +73,6 @@ int dht11_get_data(struct dht11_t *self, uint8_t pin)
         self->buf[j] = self->tbuf[j] > DHT11_BIT_THRESHOLD_US;
     }
 
-    /* printk(KERN_DEBUG "tbuf: "); */
-    /* for (i = 0 ; i < 41 ; ++i) */
-    /*     printk(KERN_DEBUG " %d", self->tbuf[i]); */
-    /* printk(KERN_DEBUG "\n"); */
-
     self->byte1 = dht11_get_byte(1, self->buf);
     self->byte2 = dht11_get_byte(2, self->buf);
     self->byte3 = dht11_get_byte(3, self->buf);
