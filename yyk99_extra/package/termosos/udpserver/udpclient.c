@@ -40,7 +40,8 @@ int main(int argc, char **argv)
 
     while (1) {
         printf("> ");
-        fgets(message, BUFFER_SIZE, stdin);
+        if (!fgets(message, BUFFER_SIZE, stdin))
+            break;
         message[strcspn(message, "\n")] = 0; // Remove newline
 
         // Send message to server
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
         recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0,
                  (struct sockaddr *)&server_addr, &server_len);
 
-        printf("<<<%s\n", buffer);
+        printf("%s\n", buffer);
     }
 
     close(sockfd);
