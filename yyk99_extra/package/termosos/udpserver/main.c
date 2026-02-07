@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         // int server_process_request(server_t *self, const char *cmd, server_reply_t *out);
         if(server_process_request(&srv, buffer, &req)) {
             // FAILED
-            strncpy(buffer, "ERR Cannot read DHT11 sensor\n", sizeof(buffer));
+            strncpy(buffer, "ERROR Cannot read DHT11 sensor\n", sizeof(buffer));
             recv_len = strnlen(buffer, sizeof(buffer));
         } else {
             strncpy(buffer, "OK ", sizeof(buffer));
